@@ -36,7 +36,7 @@ iwconfig $WIFI_INTERFACE mode managed
 ifconfig $WIFI_INTERFACE up
 dhclient $WIFI_INTERFACE
 
-ping -c 2 www.google.co.il > /dev/null; 
+ping -c 2 8.8.8.8 > /dev/null; 
 
 if [ "$?" = 0 ]
 then
