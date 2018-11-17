@@ -8,8 +8,11 @@ The attack is based on this [blog](https://null-byte.wonderhowto.com/how-to/hack
 
 # Usage
 ./WPAcrack wireless_interface wireless_network dictionary
+
 wireless_interface - the local network interface through which the monitoring will occur
+
 wireless_network - the target network to crack
+
 dictionary - the dictionary of passwords to try
 
 # Disclaimer
